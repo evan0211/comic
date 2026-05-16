@@ -14,9 +14,8 @@ const moodAccent = {
   warm: '#60aa60', dark: '#444',    purple: '#9b59b6',
 };
 
-export default function ComicPage({ page, onNext }) {
+export default function ComicPage({ page, onNext, autoAdvance }) {
   const [panelIndex, setPanelIndex] = useState(0);
-  const [animating, setAnimating] = useState(false);
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
@@ -26,19 +25,31 @@ export default function ComicPage({ page, onNext }) {
     return () => clearTimeout(t);
   }, [page.id]);
 
-  const currentPanel = page.panels[panelIndex];
   const isLast = panelIndex === page.panels.length - 1;
-  const accent = moodAccent[currentPanel.mood] || '#5a5a8a';
 
   const advance = () => {
-    if (animating) return;
     if (!isLast) {
-      setAnimating(true);
-      setTimeout(() => { setPanelIndex(i => i + 1); setAnimating(false); }, 300);
+      setPanelIndex(i => i + 1);
     } else {
       onNext();
     }
   };
+
+  // 自動播放觸發
+  useEffect(() => {
+    if (!autoAdvance) return;
+    setPanelIndex((current) => {
+      if (current < page.panels.length - 1) {
+        return current + 1;
+      } else {
+        setTimeout(() => onNext(), 0);
+        return current;
+      }
+    });
+  }, [autoAdvance]); // eslint-disable-line
+
+  const currentPanel = page.panels[panelIndex] ?? page.panels[0];
+  const accent = moodAccent[currentPanel.mood] || '#5a5a8a';
 
   return (
     <div
@@ -57,16 +68,18 @@ export default function ComicPage({ page, onNext }) {
         ))}
       </div>
 
-      <div className={`comic-fullscreen-inner ${animating ? 'panel-exit' : 'panel-show'}`}>
+      <div className="comic-fullscreen-inner panel-show">
         {currentPanel.img ? (
           <img
+            key={panelIndex}
             src={currentPanel.img}
             alt={currentPanel.text}
-            className="manga-img-fullscreen"
+            className="manga-img-fullscreen panel-enter"
           />
         ) : (
           <div
-            className="manga-art-fullscreen"
+            key={panelIndex}
+            className="manga-art-fullscreen panel-enter"
             style={{ background: currentPanel.mood === 'neon' ? '#0a0015' : '#0a0a14' }}
           >
             <FallbackArt mood={currentPanel.mood} panelIndex={panelIndex} accent={accent} />

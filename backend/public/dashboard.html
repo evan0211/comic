@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>褪色城市 · 統計 Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      background: #0a0a14;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: rgba(16, 16, 40, 0.98);
+      border-bottom: 1px solid #2a2a4a;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header h1 { font-size: 1.1rem; color: #e8e8ff; letter-spacing: 0.05em; }
+    header span { font-size: 0.75rem; color: #4a4a6a; }
+    #refresh-btn {
+      background: transparent;
+      color: #7a7aaa;
+      border: 1px solid #3a3a5a;
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #refresh-btn:hover { border-color: #7a7aaa; color: #c0c0e0; }
+
+    /* ── Main ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 36px 24px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 44px;
+    }
+
+    /* ── Loading / Error ── */
+    #loading, #error {
+      text-align: center;
+      padding: 80px;
+      color: #5a5a7a;
+      font-size: 0.95rem;
+    }
+    #error { color: #cc4444; }
+
+    /* ── Section ── */
+    section { display: flex; flex-direction: column; gap: 20px; }
+    .section-title {
+      font-size: 0.78rem;
+      color: #5a5a8a;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1a1a2e;
+    }
+
+    /* ── Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: rgba(16, 16, 40, 0.9);
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.3s;
+    }
+    .card-num {
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1;
+      color: #e8e8ff;
+    }
+    .card-label {
+      font-size: 0.75rem;
+      color: #7a7aaa;
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+    .card-pct { font-size: 0.7rem; color: #4a4a6a; }
+
+    /* ── Bar chart ── */
+    .bars { display: flex; flex-direction: column; gap: 18px; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 110px;
+      align-items: center;
+      gap: 14px;
+    }
+    .bar-label { font-size: 0.82rem; color: #c0c0e0; text-align: right; }
+    .bar-track {
+      background: #12121e;
+      border-radius: 6px;
+      height: 16px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      min-width: 4px;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+    }
+    .bar-val { font-size: 0.75rem; color: #7a7aaa; }
+
+    /* ── Pie ── */
+    .pie-wrap {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .pie {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 4px 28px rgba(0,0,0,0.6);
+      transition: background 0.8s ease;
+    }
+    .legend { display: flex; flex-direction: column; gap: 14px; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.86rem;
+      color: #c0c0e0;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .legend-pct {
+      margin-left: auto;
+      color: #5a5a7a;
+      font-size: 0.78rem;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Ending cards ── */
+    .ending-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .ending-card {
+      border: 1px solid;
+      border-radius: 12px;
+      padding: 26px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+    .ending-emoji  { font-size: 2.2rem; }
+    .ending-badge  { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.1em; }
+    .ending-count  { font-size: 1.8rem; font-weight: 700; }
+    .ending-pct    { font-size: 0.75rem; color: #5a5a7a; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: right;
+      font-size: 0.7rem;
+      color: #2a2a4a;
+      padding: 0 24px 24px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📊 褪色城市 · 統計</h1>
+  <button id="refresh-btn" onclick="load()">↻ 重新整理</button>
+  <span id="updated"></span>
+</header>
+
+<main id="main">
+  <div id="loading">載入中…</div>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+  const COLORS = { A: '#e05555', B: '#d4a017', D: '#9b59b6' };
+  const ENDING_BG = { good: '#0d2e0d', bad: '#1a0a0a', special: '#1a0d2e' };
+
+  function el(tag, cls, html) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  async function load() {
+    const main = document.getElementById('main');
+    main.innerHTML = '<div id="loading">載入中…</div>';
+
+    let data;
+    try {
+      const res = await fetch('/api/dashboard');
+      data = await res.json();
+    } catch {
+      main.innerHTML = '<div id="error">無法連線到後台，請確認伺服器是否啟動。</div>';
+      return;
+    }
+
+    main.innerHTML = '';
+
+    // ── 總覽卡片 ──
+    const cardsSection = el('section');
+    cardsSection.appendChild(el('h2', 'section-title', '總覽'));
+    const cards = el('div', 'cards');
+
+    // 總計
+    const totalCard = el('div', 'card');
+    totalCard.innerHTML = `<span class="card-num">${data.total}</span><span class="card-label">總選擇次數</span>`;
+    cards.appendChild(totalCard);
+
+    data.choices.forEach(c => {
+      const card = el('div', 'card');
+      card.style.borderColor = COLORS[c.choice_key] || '#2a2a4a';
+      card.innerHTML = `
+        <span class="card-num" style="color:${COLORS[c.choice_key]}">${c.count}</span>
+        <span class="card-label">${c.label.split('（')[0]}</span>
+        <span class="card-pct">${c.pct}%</span>
+      `;
+      cards.appendChild(card);
+    });
+    cardsSection.appendChild(cards);
+    main.appendChild(cardsSection);
+
+    // ── 長條圖 ──
+    const barSection = el('section');
+    barSection.appendChild(el('h2', 'section-title', '選項分佈'));
+    const bars = el('div', 'bars');
+    data.choices.forEach(c => {
+      const row = el('div', 'bar-row');
+      row.innerHTML = `
+        <span class="bar-label">${c.label.split('（')[0]}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:${COLORS[c.choice_key]}" data-pct="${c.pct}"></div></div>
+        <span class="bar-val" style="color:${COLORS[c.choice_key]}">${c.count} 票 · ${c.pct}%</span>
+      `;
+      bars.appendChild(row);
+    });
+    barSection.appendChild(bars);
+    main.appendChild(barSection);
+
+    // 動畫長條
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.bar-fill').forEach(b => {
+        b.style.width = b.dataset.pct + '%';
+      });
+    });
+
+    // ── 圓餅圖 ──
+    const pieSection = el('section');
+    pieSection.appendChild(el('h2', 'section-title', '結局佔比'));
+    const pieWrap = el('div', 'pie-wrap');
+
+    const pie = el('div', 'pie');
+    if (data.total === 0) {
+      pie.style.background = '#1a1a2e';
+    } else {
+      let cum = 0;
+      const segs = data.choices.map(c => {
+        const pct = c.count / data.total;
+        const start = cum;
+        cum += pct;
+        return `${COLORS[c.choice_key]} ${(start*360).toFixed(1)}deg ${(cum*360).toFixed(1)}deg`;
+      });
+      pie.style.background = `conic-gradient(${segs.join(', ')})`;
+    }
+    pieWrap.appendChild(pie);
+
+    const legend = el('div', 'legend');
+    data.endings.forEach(e => {
+      const item = el('div', 'legend-item');
+      item.innerHTML = `
+        <span class="legend-dot" style="background:${COLORS[e.choice_key]}"></span>
+        <span>${e.emoji} ${e.badge}</span>
+        <span class="legend-pct">${e.pct}%</span>
+      `;
+      legend.appendChild(item);
+    });
+    pieWrap.appendChild(legend);
+    pieSection.appendChild(pieWrap);
+    main.appendChild(pieSection);
+
+    // ── 結局卡片 ──
+    const endSection = el('section');
+    endSection.appendChild(el('h2', 'section-title', '結局詳情'));
+    const endCards = el('div', 'ending-cards');
+    data.endings.forEach(e => {
+      const card = el('div', 'ending-card');
+      card.style.background = ENDING_BG[e.type] || '#0a0a14';
+      card.style.borderColor = COLORS[e.choice_key] || '#2a2a4a';
+      card.innerHTML = `
+        <span class="ending-emoji">${e.emoji}</span>
+        <span class="ending-badge" style="color:${COLORS[e.choice_key]}">${e.badge}</span>
+        <span class="ending-count" style="color:${COLORS[e.choice_key]}">${e.count} 人</span>
+        <span class="ending-pct">${e.pct}%</span>
+      `;
+      endCards.appendChild(card);
+    });
+    endSection.appendChild(endCards);
+    main.appendChild(endSection);
+
+    // 更新時間
+    document.getElementById('footer').textContent =
+      '最後更新：' + new Date(data.updatedAt).toLocaleString('zh-TW');
+  }
+
+  load();
+</script>
+</body>
+</html>

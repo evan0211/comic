@@ -1,20 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 
 const endingBg = {
-  good:    'radial-gradient(ellipse at center, #0d2e0d 0%, #1a1a2e 70%)',
-  bad:     'radial-gradient(ellipse at center, #1a0a0a 0%, #0a0a0a 70%)',
-  special: 'radial-gradient(ellipse at center, #1a0d2e 0%, #0d0d1a 70%)',
+  good:    'radial-gradient(ellipse at center, #0d2e0d 0%, #0a0a14 70%)',
+  bad:     'radial-gradient(ellipse at center, #1a0a0a 0%, #050505 70%)',
+  special: 'radial-gradient(ellipse at center, #1a0d2e 0%, #0a0a14 70%)',
 };
 
 const endingAccent = { good: '#60cc60', bad: '#cc4444', special: '#9b59b6' };
 
-export default function EndingPage({ page, ending, onRestart, onStats }) {
+export default function EndingPage({ page, ending, onRestart, onDashboard }) {
   const [entered, setEntered] = useState(false);
   const [particles, setParticles] = useState([]);
 
   useEffect(() => {
     const t = setTimeout(() => setEntered(true), 80);
-    // 生成粒子
     setParticles([...Array(20)].map((_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -29,65 +28,53 @@ export default function EndingPage({ page, ending, onRestart, onStats }) {
 
   return (
     <div
-      className={`page-wrapper ending-wrapper ${entered ? 'page-enter' : ''}`}
+      className={`ending-fullscreen ${entered ? 'page-enter' : ''}`}
       style={{ background: endingBg[ending.type] }}
     >
       {/* 粒子 */}
       <div className="ending-particles">
         {particles.map((p) => (
-          <div
-            key={p.id}
-            className="ending-particle"
-            style={{
-              left: `${p.x}%`,
-              width: p.size,
-              height: p.size,
-              background: accent,
-              animationDelay: `${p.delay}s`,
-              animationDuration: `${p.dur}s`,
-            }}
-          />
+          <div key={p.id} className="ending-particle" style={{
+            left: `${p.x}%`, width: p.size, height: p.size,
+            background: accent, animationDelay: `${p.delay}s`, animationDuration: `${p.dur}s`,
+          }} />
         ))}
       </div>
 
-      <div className="comic-panel ending-panel">
-        {/* 結局徽章 */}
+      {/* 圖片區 */}
+      <div className="ending-img-area">
+        {ending.img ? (
+          <img src={ending.img} alt={ending.title} className="ending-img-full" />
+        ) : (
+          <div className="ending-img-fallback" style={{ background: '#050510' }}>
+            <EndingArt type={ending.type} accent={accent} />
+          </div>
+        )}
+        {/* 圖片底部漸層遮罩 */}
+        <div className="ending-img-fade" style={{
+          background: `linear-gradient(to bottom, transparent 40%, ${endingBg[ending.type].match(/#[0-9a-f]+(?=\s+70%)/i)?.[0] ?? '#0a0a14'} 100%)`
+        }} />
+      </div>
+
+      {/* 文字區 */}
+      <div className="ending-text-area">
         <div className="ending-badge" style={{ color: accent, borderColor: accent }}>
           {ending.emoji} {ending.badge}
         </div>
 
-        <div className="act-label">{page.act}</div>
-        <h1 className="page-title ending-title" style={{ color: accent }}>
+        <h1 className="ending-title-lg" style={{ color: accent }}>
           {ending.title}
         </h1>
 
-        {/* 漫畫格 */}
-        <div className="manga-frame" style={{ borderColor: accent }}>
-          {ending.img ? (
-            <img src={ending.img} alt={ending.title} className="manga-img" />
-          ) : (
-            <div className="manga-art">
-              <div className="art-bg" style={{ background: '#050510' }}>
-                <EndingArt type={ending.type} accent={accent} />
-              </div>
-            </div>
-          )}
-        </div>
+        <p className="ending-desc-text">{ending.description}</p>
 
-        {/* 核心訊息 */}
-        <div className="ending-message" style={{ borderLeftColor: accent }}>
-          <p className="ending-msg-text">💬 {ending.message}</p>
-        </div>
-
-        <p className="page-desc">{ending.description}</p>
-
-        <div className="city-state" style={{ color: accent + 'aa' }}>
-          🏙 {ending.cityState}
-        </div>
+        <p className="ending-reason-text" style={{ color: accent }}>
+          {ending.reason}
+        </p>
 
         <div className="ending-actions">
           <button className="btn-next" onClick={onRestart}>重新開始</button>
-          <button className="btn-stats" onClick={onStats}>查看統計</button>
+          <button className="btn-stats" onClick={onDashboard}>統計</button>
         </div>
       </div>
     </div>
@@ -104,7 +91,6 @@ function EndingArt({ type, accent }) {
       <div className="bloom-glow" style={{ boxShadow: `0 0 40px 20px ${accent}44` }} />
     </div>
   );
-
   if (type === 'bad') return (
     <div className="ending-art-bad">
       {[...Array(5)].map((_, i) => (
@@ -113,7 +99,6 @@ function EndingArt({ type, accent }) {
       <div className="bad-light" style={{ background: accent }} />
     </div>
   );
-
   return (
     <div className="ending-art-special">
       {[...Array(3)].map((_, i) => (

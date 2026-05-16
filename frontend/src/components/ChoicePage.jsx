@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function ChoicePage({ page, onChoice }) {
+export default function ChoicePage({ page, onChoice, onHover }) {
   const [selected, setSelected] = useState(null);
   const [entered, setEntered] = useState(false);
 
@@ -30,6 +30,8 @@ export default function ChoicePage({ page, onChoice }) {
             backgroundColor: choice.img ? undefined : '#0a0a1e',
           }}
           onClick={() => handleSelect(choice)}
+          onMouseEnter={() => onHover?.(choice.next)}
+          onMouseLeave={() => onHover?.(null)}
         >
           {/* 暗色遮罩 */}
           <div className="slice-overlay" />

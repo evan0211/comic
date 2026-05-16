@@ -8,14 +8,18 @@ router.get('/stats', (req, res) => {
   res.json(rows);
 });
 
-// POST 記錄一次選擇
+// POST 記錄一次選擇；?auto=1 時不寫入資料庫（自動播放模式）
 router.post('/:key', (req, res) => {
   const { key } = req.params;
-  const row = db.prepare('SELECT id FROM choices WHERE choice_key = ?').get(key);
-  if (!row) return res.status(404).json({ message: '無效的選項' });
+  const isAuto = req.query.auto === '1';
 
-  db.prepare('UPDATE choices SET count = count + 1 WHERE choice_key = ?').run(key);
-  res.json({ message: 'ok' });
+  if (!isAuto) {
+    const row = db.prepare('SELECT id FROM choices WHERE choice_key = ?').get(key);
+    if (!row) return res.status(404).json({ message: '無效的選項' });
+    db.prepare('UPDATE choices SET count = count + 1 WHERE choice_key = ?').run(key);
+  }
+
+  res.json({ message: 'ok', recorded: !isAuto });
 });
 
 module.exports = router;
