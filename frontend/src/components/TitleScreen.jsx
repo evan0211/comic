@@ -18,7 +18,7 @@ export default function TitleScreen({ onStart }) {
         </div>
         <div className="title-text">
           <p className="title-sub">互動漫畫</p>
-          <h1 className="title-main">褪色城市</h1>
+          <h1 className="title-main">心靈城市</h1>
           <p className="title-desc">你的選擇，決定城市的顏色</p>
         </div>
         <button className="btn-start" onClick={onStart}>
